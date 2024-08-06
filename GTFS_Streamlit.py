@@ -1,12 +1,9 @@
-import pandas as pd
-from datetime import timedelta, datetime
-import time
-from ipywidgets import HTML
-from ipyevents import Event
-from ipyleaflet import Map, Marker, Popup, Polyline, basemaps, AwesomeIcon
-from IPython.display import display, clear_output
 import streamlit as st
-from streamlit.components.v1 import html
+import pandas as pd
+from datetime import datetime, timedelta
+from ipyleaflet import Map, Marker, Popup, Polyline, basemaps, AwesomeIcon
+from ipywidgets.embed import embed_minimal_html
+import time
 
 # Load GTFS data
 data_path = r"C:\Users\TULPAR\JupyterLab Projects\dataset"
@@ -26,7 +23,7 @@ def convert_time(time_str):
             hours -= 24
         return f"{hours:02}:{minutes:02}:{seconds:02}"
     except ValueError as e:
-        print(f"Error converting time: {time_str} - {e}")
+        st.error(f"Error converting time: {time_str} - {e}")
         return None
 
 # Apply the conversion to arrival_time and departure_time
@@ -38,10 +35,8 @@ stop_times = stop_times.dropna(subset=['arrival_time', 'departure_time'])
 today_date = datetime.now().date()
 start_time = datetime.strptime("08:00:00", '%H:%M:%S').time()
 end_time = datetime.strptime("10:00:00", '%H:%M:%S').time()
-print(f"Simulation will run from {start_time} to {end_time}.")
 start_datetime = datetime.combine(today_date, start_time)
 if end_time < start_time:
-    # End time is on the next day
     end_datetime = datetime.combine(today_date + timedelta(days=1), end_time)
 else:
     end_datetime = datetime.combine(today_date, end_time)
@@ -142,11 +137,11 @@ def create_bus_markers(bus):
 
 def update_buses(buses, calendar, current_time, start_datetime, end_datetime, map):
     existing_markers = {}
-    print(f"Simulation will run from {start_datetime} to {end_datetime}.")
+    st.write(f"Simulation will run from {start_datetime} to {end_datetime}.")
 
     while current_time <= end_datetime:
         todays_buses_list = todays_buses(buses, calendar, current_time)
-        print("Current time: ", current_time)
+        st.write("Current time: ", current_time)
 
         new_markers = {(bus['trip_id'], bus['current_stop_sequence']): bus for bus in todays_buses_list}
         for marker_key in list(existing_markers.keys()):
@@ -170,10 +165,12 @@ def update_buses(buses, calendar, current_time, start_datetime, end_datetime, ma
                     existing_markers[marker_key] = new_marker
 
         current_time = current_time + timedelta(seconds=30)
-        print("SYSTEM IS")
+        st.write("SYSTEM IS")
         # Clear the previous output and display the map
-        clear_output(wait=True)
-        display(map)
+        embed_minimal_html('map.html', views=[map], title='ipyleaflet Map')
+        with open('map.html', 'r') as f:
+            map_html = f.read()
+        st.components.v1.html(map_html, height=600)
         time.sleep(30)
 
 # Initialize the map
@@ -182,8 +179,10 @@ buses = initialize_buses(trips, stop_times, stops, routes)
 map = add_stop_markers(stops, map)
 map = create_lines(shapes, map)
 # Embed the map as HTML
-map_html = embed.embed_html(map, title='ipyleaflet Map')
+embed_minimal_html('map.html', views=[map], title='ipyleaflet Map')
+with open('map.html', 'r') as f:
+    map_html = f.read()
 # Render the map in Streamlit
-st.markdown(map_html, unsafe_allow_html=True)
+st.components.v1.html(map_html, height=600)
 # Call the update_buses function
 update_buses(buses, calendar, current_time, start_datetime, end_datetime, map)
