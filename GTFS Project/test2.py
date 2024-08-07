@@ -1,6 +1,9 @@
 import pandas as pd
 from datetime import datetime, timedelta
 import time
+from ipywidgets import HTML
+from ipyleaflet import Map, Marker, Popup, Polyline, basemaps, AwesomeIcon
+from IPython.display import display, clear_output
 
 # Load the necessary GTFS data files
 data_path = r"C:\Users\TULPAR\JupyterLab Projects\dataset"
@@ -46,6 +49,57 @@ def get_service_ids_for_date(date):
     day_column = days[day_index]
     service_ids = calendar[calendar[day_column] == 1]['service_id'].tolist()
     return service_ids
+
+def add_stop_markers(stops, map):
+    for stop in stops.itertuples():
+        marker = Marker(location=[stop.stop_lat, stop.stop_lon], draggable=False)
+        popup_content = HTML()
+        popup_content.value = f"Stop: {stop.stop_name}, Stop Number: {stop.stop_id}"
+        popup = Popup(
+            location=[stop.stop_lat, stop.stop_lon],
+            child=popup_content,
+            close_button=False,
+            auto_close=False,
+            close_on_escape_key=False
+        )
+        marker.popup = popup
+        map.add_layer(marker)
+    return map
+
+def create_lines(shapes, map):
+    shape_locations = []
+    for shape in shapes.itertuples():
+        shape_locations.append([shape.shape_pt_lat, shape.shape_pt_lon])
+    
+    if len(shape_locations) > 1:
+        polyline = Polyline(
+            locations=shape_locations,
+            color="red",
+            fill=False,
+            weight=2,
+            opacity=1,
+            dash_array='5 ,5'
+        )
+        map.add_layer(polyline)
+    
+    return map
+
+def create_bus_markers(bus):
+    icon = AwesomeIcon(name='bus', marker_color='red', icon_color='white')
+    marker = Marker(icon=icon, location=[bus['stop_lat'], bus['stop_lon']], draggable=False)
+    popup_content = HTML()
+    popup_content.value = f"Route Name: {bus['route_short_name']}, Trip ID: {bus['trip_id']}, Stop Name: {bus['current_stop_name']}, Stop Number: {bus['current_stop_id']}, Stop Time: {bus['stop_time']}"
+    popup = Popup(
+        location=[bus['stop_lat'], bus['stop_lon']],
+        child=popup_content,
+        close_button=False,
+        auto_close=False,
+        close_on_escape_key=False
+    )
+    marker.popup = popup
+    return marker
+
+
 
 # Function to get the buses at the current time
 def get_buses_at_time(target_time_str, service_ids):
