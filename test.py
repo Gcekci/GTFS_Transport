@@ -28,10 +28,10 @@ today_date = datetime.now().date()
 
 
 
-start_time = datetime.strptime("23:59:00", '%H:%M:%S').time()
+start_time = datetime.strptime("10:00:00", '%H:%M:%S').time()
 print('start_time: ', start_time)
 
-end_time = datetime.strptime("07:00:00", '%H:%M:%S').time()
+end_time = datetime.strptime("10:30:00", '%H:%M:%S').time()
 
 print(f"Simulation will run from {start_time} to {end_time}.")
 
@@ -64,6 +64,7 @@ def get_service_id():
 def initialize_buses(trips, stop_times, stops, routes):
     merged_df = pd.merge(trips, stop_times, on='trip_id', how='outer')
     merged_df2 = pd.merge(merged_df, stops, on='stop_id', how='outer')
+    merged_df3=pd.merge(merged_df2,stop_times, on='trip_id',how='outer')
     final_merge = pd.merge(merged_df2, routes, on='route_id', how='outer')
 
     buses = [{
@@ -103,22 +104,23 @@ def update():
                 print('todays service id: ',today_service_id)
                 buses=initialize_buses(trips, stop_times, stops, routes)
                 todaysBuses = [bus for bus in buses if bus['service_id'] == today_service_id] 
-                
-                for bus in todaysBuses:
+
+                current_buses = todaysBuses[(stop_times['arrival_time'] == current_datetime) | (stop_times['departure_time'] == current_datetime)]
+                '''for bus in todaysBuses:
                      #bus_stop_time=datetime.strptime(bus['stop_time']).time()
                      bus_stop_time_str = bus['stop_time']
                      bus_stop_time = datetime.strptime(bus_stop_time_str, '%H:%M:%S').time()
                      bus_datetime = datetime.combine(today_date, bus_stop_time)
-                     print('otobüs saati: ',bus_datetime)
-                     current_datetime_str=current_datetime.strftime('%H:%M:%S')
-                     print(current_datetime_str)   
+                     
                      if current_datetime<bus_datetime:
                         bus_datetime+=timedelta(days=1)
-
-                     if current_datetime>=bus_datetime:
+                        print('bus datetime+1: ',bus_datetime)
+                     if current_datetime==bus_datetime:
                         current_buses.append(bus)
                         
-
+                '''
+                print('>>>>>>>>>>>>>>>>>>>>>>>>>>> ',current_buses)
+                print('current bus amount: ',len(current_buses))
                 print(current_buses)
                 amount = sum(1 for bus in buses if bus['service_id'] == today_service_id)
                 print('todays bus amount is: ',amount)
