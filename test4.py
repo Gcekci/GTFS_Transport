@@ -50,9 +50,54 @@ def get_service_ids_for_date(date):
     service_ids = calendar[calendar[day_column] == 1]['service_id'].tolist()
     return service_ids
 
+def add_stop_markers(stops, map):
+    for stop in stops.itertuples():
+        marker = Marker(location=[stop.stop_lat, stop.stop_lon], draggable=False)
+        popup_content = HTML()
+        popup_content.value = f"Stop: {stop.stop_name}, Stop Number: {stop.stop_id}"
+        popup = Popup(
+            location=[stop.stop_lat, stop.stop_lon],
+            child=popup_content,
+            close_button=False,
+            auto_close=False,
+            close_on_escape_key=False
+        )
+        marker.popup = popup
+        map.add_layer(marker)
+    return map
 
+def create_lines(shapes, map):
+    shape_locations = []
+    for shape in shapes.itertuples():
+        shape_locations.append([shape.shape_pt_lat, shape.shape_pt_lon])
+    
+    if len(shape_locations) > 1:
+        polyline = Polyline(
+            locations=shape_locations,
+            color="red",
+            fill=False,
+            weight=2,
+            opacity=1,
+            dash_array='5 ,5'
+        )
+        map.add_layer(polyline)
+    
+    return map
 
-
+def create_bus_markers(buses):
+    icon = AwesomeIcon(name='bus', marker_color='red', icon_color='white')
+    marker = Marker(icon=icon, location=[buses['stop_lat'], buses['stop_lon']], draggable=False)
+    popup_content = HTML()
+    popup_content.value = f"Route Name: {buses['route_short_name']}, Trip ID: {buses['trip_id']}, Stop Name: {buses['stop_name']}, Arrival Time: {buses['arrival_time']}"
+    popup = Popup(
+        location=[buses['stop_lat'], buses['stop_lon']],
+        child=popup_content,
+        close_button=False,
+        auto_close=False,
+        close_on_escape_key=False
+    )
+    marker.popup = popup
+    return marker
 
 # Function to get the buses at the current time
 def get_buses_at_time(target_time_str, service_ids):
@@ -129,9 +174,18 @@ def dynamic_update_service(start_time_str, end_time_str):
                 if trip_id in previous_bus_state:
                     if previous_bus_state[trip_id][0] != stop_id:
                         print(f"Trip ID {trip_id} has changed stop from {previous_bus_state[trip_id][0]} to {stop_id}")
-                       
+                        # Remove the old marker
+                        map.remove_layer(markers[trip_id])
+                        # Create a new marker
+                        new_marker = create_bus_markers(buses[buses['trip_id'] == trip_id].iloc[0])
+                        map.add_layer(new_marker)
+                        markers[trip_id] = new_marker
                 else:
                     print(f"Trip ID {trip_id} is at stop {stop_id} for the first time")
+                    # Create a new marker for the first time
+                    new_marker = create_bus_markers(buses[buses['trip_id'] == trip_id].iloc[0])
+                    map.add_layer(new_marker)
+                    markers[trip_id] = new_marker
 
             # Update previous_bus_state with the current state for the next iteration
             previous_bus_state.update(current_bus_state)
@@ -140,12 +194,16 @@ def dynamic_update_service(start_time_str, end_time_str):
         for trip_id in list(previous_bus_state.keys()):
             if trip_id not in current_bus_state:
                 del previous_bus_state[trip_id]
+                # Remove the old marker
+                map.remove_layer(markers[trip_id])
+                del markers[trip_id]
                 print(f"Trip ID {trip_id} has completed its stop sequence and has been removed.")
 
         current_datetime += timedelta(seconds=update_interval)
         time.sleep(30)  # Reduce sleep time for faster testing
 
 # Initialize the map
+m = Map(center=(0, 0), zoom=2, basemap=basemaps.OpenStreetMap.Mapnik)
 
 # Run the dynamic updating service with the specified start and end times
 start_time_str = get_time_input("Enter start time (HH:MM:SS): ")
