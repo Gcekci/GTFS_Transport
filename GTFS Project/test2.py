@@ -89,6 +89,8 @@ def print_bus_info(buses):
                   f"Stop: {row['stop_name']}, Arrival Time: {row['arrival_time']}, "
                   f"Departure Time: {row['departure_time']}, "
                   f"Service ID: {row['service_id']}, Stop Sequence: {row['stop_sequence']}")
+            
+            
 
 # Start the dynamic updating service
 def dynamic_update_service(start_time_str, end_time_str):
