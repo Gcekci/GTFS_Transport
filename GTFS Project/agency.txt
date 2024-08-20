@@ -1,0 +1,3 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang
+1,Lüleburgaz,http://www.kentkart.com,Europe/Istanbul,tr
+9999,Kentkart Test,http://www.kentkart.com,Europe/Istanbul,tr
